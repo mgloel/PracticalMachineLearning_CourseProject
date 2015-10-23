@@ -1,16 +1,15 @@
 ---
 title: "CourseProject-Mgloel"
 author: "mgloel"
-date: "21 Oct 2015"
+date: "23 Oct 2015"
 output: html_document
 ---
 # Intro
 
-This report includes the results of the Course Project in the Practical Machine Learning Course. It describes the preprocessing of the data, predictive model used as well as the results of the model predictions. 
+This report includes the results of the Course Project in the Practical Machine Learning Course. It describes the preprocessing of the data and the predictive model used. 
 
 
-
-The goal of your project is to predict the manner in which they did the exercise. This is the "classe" variable in the training set. You may use any of the other variables to predict with. You should create a report describing how you built your model, how you used cross validation, what you think the expected out of sample error is, and why you made the choices you did. You will also use your prediction model to predict 20 different test cases.
+The goal of this project is to predict the manner in which particpants  did an exercise based on data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. More information is available from the website here: http://groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset).  
 
 # Loading Packages and Data
 ```{r, cache=TRUE}
@@ -28,55 +27,45 @@ testing <- read.csv("pml-testing.csv")
 ```
 
 
-# Preprocessing & Model
+# Preprocessing & Model Selection
 
 Due to the size of the dataset (i.e. 160 variables) I try to reduce the number of variables by excluding: 
 
 * variables that contain more than 90% NAs.
 * variables with near zero variance
 
-I picked a Random Forest Model and used 8-fold cross validation to determine an out-of-sample error estimate.
+I picked a Random Forest Model and used 5-fold cross validation to determine an out-of-sample error estimate.
 
 ```{r, echo=FALSE, cache=TRUE}
-# 
+
 # Remove variables where 90% of entries are NAs
 training <- training[,colSums(is.na(training))<nrow(training)*0.9]
 # Remove variables with near to zero variance
 training <- training[, - nearZeroVar(training)]
 
-# Take a small test set apart
-set.seed(666)
-inTrain <- createDataPartition(training$classe, p=0.7, list=FALSE)
-train1 <- training[inTrain,]
-train2 <- training[-inTrain,]
-
-
 t1 <- Sys.time()
-#PCA
-#Random Forest + CrossValidation 10 folds 10 repetitions... +out of sample error can be estimated from 
-# the computed error by cv
-
-model <- train(classe ~ .,data=train1, method="rf", 
+# Random Forest + CrossValidation 5 folds 
+model <- train(classe ~ .,data=training, method="rf", 
                trControl = trainControl( method = "cv",
-                                         number = 8
+                                         number = 5
                                         ))
+# Computing Time for Model Creation
 Sys.time() - t1
 
+# Model details, Confusion Matrix and Accuracy Measures
 model$finalModel
 
-preds <- predict(model, train2)
 
-confusionMatrix(train2$classe, preds)
 ```
 
 
 
-# Results
+# Results on testing data
 
-I apply the model to the testing set and write the predictions into files as sugggested in the Project Instruction.
+I apply the model to the testing set and write the predictions into files as sugggested on the Instruction page.
 
-````{r, echo=FALSE,cache=TRUE}
-# 
+````{r, echo=FALSE,cache=TRUE, eval=FALSE}
+# Make predictions on testing data and store as a character vector
 predictions <- predict(model, testing)
 predictions <- as.character(predictions)
 
@@ -87,6 +76,7 @@ pml_write_files <- function(x) {
         write.table(x[i], file=filename, quote=F, row.names=F, col.names=F)
     }
 }
+pml_write_files(predictions)
 ````
 
 
