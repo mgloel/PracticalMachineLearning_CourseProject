@@ -12,7 +12,7 @@ This report includes the results of the Course Project in the Practical Machine 
 The goal of this project is to predict the manner in which particpants  did an exercise based on data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. More information is available from the website here: http://groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset).  
 
 # Loading Packages and Data
-```{r, cache=TRUE}
+```{r, cache=FALSE, echo=TRUE, message=FALSE, warning=FALSE}
 library(caret)
 library(rpart)
 library(randomForest)
@@ -36,7 +36,7 @@ Due to the size of the dataset (i.e. 160 variables) I try to reduce the number o
 
 I picked a Random Forest Model and used 5-fold cross validation to determine an out-of-sample error estimate.
 
-```{r, echo=FALSE, cache=TRUE}
+```{r, echo=TRUE, cache=TRUE}
 
 # Remove variables where 90% of entries are NAs
 training <- training[,colSums(is.na(training))<nrow(training)*0.9]
@@ -49,34 +49,40 @@ model <- train(classe ~ .,data=training, method="rf",
                trControl = trainControl( method = "cv",
                                          number = 5
                                         ))
+
+````
+
+````{r}
 # Computing Time for Model Creation
 Sys.time() - t1
 
 # Model details, Confusion Matrix and Accuracy Measures
 model$finalModel
-
-
 ```
 
-
+The out of sample error estimate obtained by 5-fold cross validation is *0.01%*.
+ 
 
 # Results on testing data
 
 I apply the model to the testing set and write the predictions into files as sugggested on the Instruction page.
 
-````{r, echo=FALSE,cache=TRUE, eval=FALSE}
+````{r}
 # Make predictions on testing data and store as a character vector
-predictions <- predict(model, testing)
-predictions <- as.character(predictions)
 
-pml_write_files <- function(x) {
-    n <- length(x)
-    for(i in 1:n) {
-        filename <- paste0("problem_id_", i, ".txt")
-        write.table(x[i], file=filename, quote=F, row.names=F, col.names=F)
-    }
-}
-pml_write_files(predictions)
+# Commented out for knitting
+
+# predictions <- predict(model, testing)
+# predictions <- as.character(predictions)
+# 
+# pml_write_files <- function(x) {
+#     n <- length(x)
+#     for(i in 1:n) {
+#         filename <- paste0("problem_id_", i, ".txt")
+#         write.table(x[i], file=filename, quote=F, row.names=F, col.names=F)
+#     }
+# }
+# pml_write_files(predictions)
 ````
 
 
