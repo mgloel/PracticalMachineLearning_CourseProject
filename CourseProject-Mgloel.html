@@ -75,17 +75,10 @@ img {
 </div>
 <div id="loading-packages-and-data" class="section level1">
 <h1>Loading Packages and Data</h1>
-<pre class="r"><code>library(caret)</code></pre>
-<pre><code>## Warning: package 'caret' was built under R version 3.1.3</code></pre>
-<pre><code>## Loading required package: lattice</code></pre>
-<pre><code>## Warning: package 'lattice' was built under R version 3.1.3</code></pre>
-<pre><code>## Loading required package: ggplot2</code></pre>
-<pre><code>## Warning: package 'ggplot2' was built under R version 3.1.3</code></pre>
-<pre class="r"><code>library(rpart)
-library(randomForest)</code></pre>
-<pre><code>## randomForest 4.6-10
-## Type rfNews() to see new features/changes/bug fixes.</code></pre>
-<pre class="r"><code>url1 &lt;- &quot;https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv&quot;
+<pre class="r"><code>library(caret)
+library(rpart)
+library(randomForest)
+url1 &lt;- &quot;https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv&quot;
 url2 &lt;- &quot;https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv&quot; 
 download.file(url1, destfile = 'pml-training.csv', method = &quot;curl&quot;)
 download.file(url2, destfile = 'pml-testing.csv', method = &quot;curl&quot;)
@@ -101,7 +94,22 @@ testing &lt;- read.csv(&quot;pml-testing.csv&quot;)</code></pre>
 <li>variables with near zero variance</li>
 </ul>
 <p>I picked a Random Forest Model and used 5-fold cross validation to determine an out-of-sample error estimate.</p>
-<pre><code>## Time difference of 21.56485 mins</code></pre>
+<pre class="r"><code># Remove variables where 90% of entries are NAs
+training &lt;- training[,colSums(is.na(training))&lt;nrow(training)*0.9]
+# Remove variables with near to zero variance
+training &lt;- training[, - nearZeroVar(training)]
+
+t1 &lt;- Sys.time()
+# Random Forest + CrossValidation 5 folds 
+model &lt;- train(classe ~ .,data=training, method=&quot;rf&quot;, 
+               trControl = trainControl( method = &quot;cv&quot;,
+                                         number = 5
+                                        ))</code></pre>
+<pre class="r"><code># Computing Time for Model Creation
+Sys.time() - t1</code></pre>
+<pre><code>## Time difference of 47.94257 mins</code></pre>
+<pre class="r"><code># Model details, Confusion Matrix and Accuracy Measures
+model$finalModel</code></pre>
 <pre><code>## 
 ## Call:
 ##  randomForest(x = x, y = y, mtry = param$mtry) 
@@ -117,10 +125,26 @@ testing &lt;- read.csv(&quot;pml-testing.csv&quot;)</code></pre>
 ## C    0    1 3421    0    0 0.0002922268
 ## D    0    0    0 3216    0 0.0000000000
 ## E    0    0    0    0 3607 0.0000000000</code></pre>
+<p>The out of sample error estimate obtained by 5-fold cross validation is <em>0.01%</em>.</p>
 </div>
 <div id="results-on-testing-data" class="section level1">
 <h1>Results on testing data</h1>
 <p>I apply the model to the testing set and write the predictions into files as sugggested on the Instruction page.</p>
+<pre class="r"><code># Make predictions on testing data and store as a character vector
+
+# Commented out for knitting
+
+# predictions &lt;- predict(model, testing)
+# predictions &lt;- as.character(predictions)
+# 
+# pml_write_files &lt;- function(x) {
+#     n &lt;- length(x)
+#     for(i in 1:n) {
+#         filename &lt;- paste0(&quot;problem_id_&quot;, i, &quot;.txt&quot;)
+#         write.table(x[i], file=filename, quote=F, row.names=F, col.names=F)
+#     }
+# }
+# pml_write_files(predictions)</code></pre>
 </div>
 <div id="references" class="section level1">
 <h1>References</h1>
@@ -143,19 +167,18 @@ testing &lt;- read.csv(&quot;pml-testing.csv&quot;)</code></pre>
 ## loaded via a namespace (and not attached):
 ##  [1] BradleyTerry2_1.0-6 MASS_7.3-40         Matrix_1.2-0       
 ##  [4] Rcpp_0.11.6         SparseM_1.6         brglm_0.5-9        
-##  [7] car_2.0-25          class_7.3-12        codetools_0.2-11   
-## [10] colorspace_1.2-6    compiler_3.1.2      digest_0.6.8       
-## [13] e1071_1.6-4         evaluate_0.7        foreach_1.4.2      
-## [16] formatR_1.2         grid_3.1.2          gtable_0.1.2       
-## [19] gtools_3.4.2        htmltools_0.2.6     iterators_1.0.7    
-## [22] knitr_1.10.5        lme4_1.1-7          magrittr_1.5       
-## [25] mgcv_1.8-6          minqa_1.2.4         munsell_0.4.2      
-## [28] nlme_3.1-120        nloptr_1.0.4        nnet_7.3-9         
-## [31] parallel_3.1.2      pbkrtest_0.4-2      plyr_1.8.2         
-## [34] proto_0.3-10        quantreg_5.11       reshape2_1.4.1     
-## [37] rmarkdown_0.5.1     scales_0.2.4        splines_3.1.2      
-## [40] stringi_0.4-1       stringr_1.0.0       tools_3.1.2        
-## [43] yaml_2.1.13</code></pre>
+##  [7] car_2.0-25          codetools_0.2-11    colorspace_1.2-6   
+## [10] digest_0.6.8        evaluate_0.7        foreach_1.4.2      
+## [13] formatR_1.2         grid_3.1.2          gtable_0.1.2       
+## [16] gtools_3.4.2        htmltools_0.2.6     iterators_1.0.7    
+## [19] knitr_1.10.5        lme4_1.1-7          magrittr_1.5       
+## [22] mgcv_1.8-6          minqa_1.2.4         munsell_0.4.2      
+## [25] nlme_3.1-120        nloptr_1.0.4        nnet_7.3-9         
+## [28] parallel_3.1.2      pbkrtest_0.4-2      plyr_1.8.2         
+## [31] proto_0.3-10        quantreg_5.11       reshape2_1.4.1     
+## [34] rmarkdown_0.5.1     scales_0.2.4        splines_3.1.2      
+## [37] stringi_0.4-1       stringr_1.0.0       tools_3.1.2        
+## [40] yaml_2.1.13</code></pre>
 </div>
 
 
