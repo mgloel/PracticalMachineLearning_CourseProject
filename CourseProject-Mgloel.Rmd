@@ -13,9 +13,10 @@ This report includes the results of the Course Project in the Practical Machine 
 The goal of your project is to predict the manner in which they did the exercise. This is the "classe" variable in the training set. You may use any of the other variables to predict with. You should create a report describing how you built your model, how you used cross validation, what you think the expected out of sample error is, and why you made the choices you did. You will also use your prediction model to predict 20 different test cases.
 
 # Loading Packages and Data
-```{r}
+```{r, cache=TRUE}
 library(caret)
 library(rpart)
+library(randomForest)
 url1 <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
 url2 <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv" 
 download.file(url1, destfile = 'pml-training.csv', method = "curl")
@@ -24,36 +25,68 @@ download.file(url2, destfile = 'pml-testing.csv', method = "curl")
 training <- read.csv("pml-training.csv")
 testing <- read.csv("pml-testing.csv")
 
-str(training)
 ```
 
 
 # Preprocessing & Model
 
-Due to the size of the dataset (i.e. 160 variables) I try to reduce the number of variables by excluding those that contain more than 90% NAs moreover I perform a Principal Component Analysis (PCA) with a threshold of 0.8 (i.e. I select those variables that account for 80 % of the variability in the data set).
-```{r, echo=FALSE}
+Due to the size of the dataset (i.e. 160 variables) I try to reduce the number of variables by excluding: 
+
+* variables that contain more than 90% NAs.
+* variables with near zero variance
+
+I picked a Random Forest Model and used 8-fold cross validation to determine an out-of-sample error estimate.
+
+```{r, echo=FALSE, cache=TRUE}
+# 
 # Remove variables where 90% of entries are NAs
 training <- training[,colSums(is.na(training))<nrow(training)*0.9]
+# Remove variables with near to zero variance
+training <- training[, - nearZeroVar(training)]
+
+# Take a small test set apart
+set.seed(666)
+inTrain <- createDataPartition(training$classe, p=0.7, list=FALSE)
+train1 <- training[inTrain,]
+train2 <- training[-inTrain,]
+
+
 t1 <- Sys.time()
 #PCA
 #Random Forest + CrossValidation 10 folds 10 repetitions... +out of sample error can be estimated from 
 # the computed error by cv
 
-model <- train(classe ~ .,data=training, method="rpart", preProcess = "pca",
-               trControl = trainControl(preProcOptions = list(thresh = 0.8),
-                                         method = "repeatedcv",
-                                         number = 10,
-                                         ## repeated ten times
-                                         repeats = 1
+model <- train(classe ~ .,data=train1, method="rf", 
+               trControl = trainControl( method = "cv",
+                                         number = 8
                                         ))
 Sys.time() - t1
+
+model$finalModel
+
+preds <- predict(model, train2)
+
+confusionMatrix(train2$classe, preds)
 ```
 
 
 
 # Results
-````{r, echo=FALSE}
-#predictions for the test set... Confusion mat...
+
+I apply the model to the testing set and write the predictions into files as sugggested in the Project Instruction.
+
+````{r, echo=FALSE,cache=TRUE}
+# 
+predictions <- predict(model, testing)
+predictions <- as.character(predictions)
+
+pml_write_files <- function(x) {
+    n <- length(x)
+    for(i in 1:n) {
+        filename <- paste0("problem_id_", i, ".txt")
+        write.table(x[i], file=filename, quote=F, row.names=F, col.names=F)
+    }
+}
 ````
 
 
@@ -61,3 +94,7 @@ Sys.time() - t1
 Velloso, E.; Bulling, A.; Gellersen, H.; Ugulino, W.; Fuks, H. Qualitative Activity Recognition of Weight Lifting Exercises. Proceedings of 4th International Conference in Cooperation with SIGCHI (Augmented Human '13) . Stuttgart, Germany: ACM SIGCHI, 2013.
 
 Read more: http://groupware.les.inf.puc-rio.br/har#ixzz3pC8aazlA
+
+````{r}
+sessionInfo()
+````
